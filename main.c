@@ -1,42 +1,21 @@
+/////////////////////////////////////////////////////////////////////
+/*
+ * I2C Address Scan (main.c)
+ * Brian Costantibo
+ *
+ * - This code, for the MSP430G2553, acts as the controller on an I2C bus.
+ * - Scans all 7-bit peripheral addresses, storing each valid address
+ *   in a global array (int[] addys)
+ */
+//////////////////////////////////////////////////////////////////////
+
 #include <msp430.h>
-#include <stdio.h>
 
 int addys[10];
 unsigned int counter = 0;
 
-void initI2C()
-{
-    UCB0CTL1 |= UCSWRST;                      // Enable SW reset
-
-    P1SEL |= BIT6 + BIT7;                     // Assign I2C pins to USCI_B0
-    P1SEL2|= BIT6 + BIT7;                     // Assign I2C pins to USCI_B0
-
-    UCB0CTL0 = UCMST + UCMODE_3 + UCSYNC;     // I2C Master, synchronous mode
-    UCB0CTL1 = UCSSEL_2 + UCSWRST;            // Use SMCLK, keep SW reset
-    UCB0BR0 = 24;                             // set baud rate, fSCL = SMCLK/12 = ~100kHz
-    UCB0BR1 = 0;
-    UCB0CTL1 &= ~UCSWRST;                     // Clear SW reset, resume operation
-    IE2 |= UCB0RXIE + UCB0TXIE;
-}
-
-void initUART()
-{
-    if (CALBC1_1MHZ==0xFF)                    // If calibration constant erased
-    {
-      while(1);                               // do not load, trap CPU!!
-    }
-    UCA0CTL1 |= UCSWRST;
-    DCOCTL = 0;                               // Select lowest DCOx and MODx settings
-    BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
-    DCOCTL = CALDCO_1MHZ;
-    P1SEL |= BIT1 + BIT2 ;                     // P1.1 = RXD, P1.2=TXD
-    P1SEL2 |= BIT1 + BIT2 ;                    // P1.1 = RXD, P1.2=TXD
-    UCA0CTL1 |= UCSSEL_2;                     // SMCLK
-    UCA0BR0 = 104;                            // 1MHz 9600
-    UCA0BR1 = 0;                              // 1MHz 9600
-    UCA0MCTL = UCBRS0;                        // Modulation UCBRSx = 1
-    UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
-}
+void initUART();
+void initI2C();
 
 int main(void)
 {
@@ -80,6 +59,49 @@ int main(void)
 
     return 0;
 }
+
+/*
+ * Initialization functions for I2C and UART communication
+ */
+
+void initI2C()
+{
+    UCB0CTL1 |= UCSWRST;                      // Enable SW reset
+
+    P1SEL |= BIT6 + BIT7;                     // Assign I2C pins to USCI_B0
+    P1SEL2|= BIT6 + BIT7;                     // Assign I2C pins to USCI_B0
+
+    UCB0CTL0 = UCMST + UCMODE_3 + UCSYNC;     // I2C Master, synchronous mode
+    UCB0CTL1 = UCSSEL_2 + UCSWRST;            // Use SMCLK, keep SW reset
+    UCB0BR0 = 24;                             // set baud rate, fSCL = SMCLK/12 = ~100kHz
+    UCB0BR1 = 0;
+    UCB0CTL1 &= ~UCSWRST;                     // Clear SW reset, resume operation
+    IE2 |= UCB0RXIE + UCB0TXIE;
+}
+
+void initUART()
+{
+    if (CALBC1_1MHZ==0xFF)                    // If calibration constant erased
+    {
+      while(1);                               // do not load, trap CPU!!
+    }
+    UCA0CTL1 |= UCSWRST;
+    DCOCTL = 0;                               // Select lowest DCOx and MODx settings
+    BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
+    DCOCTL = CALDCO_1MHZ;
+    P1SEL |= BIT1 + BIT2 ;                     // P1.1 = RXD, P1.2=TXD
+    P1SEL2 |= BIT1 + BIT2 ;                    // P1.1 = RXD, P1.2=TXD
+    UCA0CTL1 |= UCSSEL_2;                     // SMCLK
+    UCA0BR0 = 104;                            // 1MHz 9600
+    UCA0BR1 = 0;                              // 1MHz 9600
+    UCA0MCTL = UCBRS0;                        // Modulation UCBRSx = 1
+    UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
+}
+
+/*
+ * Interrupt Service Routines (ISR)
+ * - Handle status, rx and tx interrupts
+ */
 
 // status interrupt handler
 // STT, STP, NACK, etc.
