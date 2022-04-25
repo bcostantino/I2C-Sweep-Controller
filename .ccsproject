@@ -12,5 +12,5 @@
 	<rts value="libc.a"/>
 	<createSlaveProjects value=""/>
 	<filesToOpen value=""/>
-	<isTargetManual value="true"/>
+	<isTargetManual value="false"/>
 </projectOptions>
