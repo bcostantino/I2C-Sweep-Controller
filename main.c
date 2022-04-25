@@ -4,7 +4,7 @@
 int addys[10];
 unsigned int counter = 0;
 
-void initializeI2C()
+void initI2C()
 {
     UCB0CTL1 |= UCSWRST;                      // Enable SW reset
 
@@ -44,7 +44,7 @@ int main(void)
     P1DIR |= BIT0;                            // P1.0 output
     P1OUT &= BIT0;                            // P1.0 = 1
 
-    initializeI2C();
+    initI2C();
     initUART();
 
     UCB0I2CSA = 0x00;                         // start address scan at 0x00, slave address
