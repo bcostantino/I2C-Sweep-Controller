@@ -1,27 +1,27 @@
+//////////////////////////////////////////////////////////////////////////////////
 //*******************************************************************************
 //
 //   I2C Address Scan (src/main.c)
 //
 //   Brian Costantibo
 //
-//*********************************************************************************
+//********************************************************************************
 //
 //   -   This code, for the MSP430G2553, acts as the controller on an I2C bus.
 //   -   Scans all 7-bit peripheral addresses, storing each valid address
 //       in a global array (int[] addys)
 //
-//*********************************************************************************
+//********************************************************************************
+//////////////////////////////////////////////////////////////////////////////////
 
 #include <msp430.h>
 #include <stdio.h>
-
-#include "uartio.h"
+#include <uartio.h>
 
 int addys[10];
 unsigned int counter = 0;
 
-void initUART();
-void initI2C();
+void I2C_init();
 
 int main(void)
 {
@@ -29,8 +29,8 @@ int main(void)
     WDTCTL = WDTPW + WDTHOLD;
 
     // initialize serial communication
-    initI2C();
-    initUART();
+    I2C_init();
+    UART_init();
 
     // start address scan at peripheral address 0x00
     UCB0I2CSA = 0x00;
@@ -61,7 +61,7 @@ int main(void)
     // UART stuff
     char message[20];
     sprintf(message, "Device address: %d", addys[0]);
-    uart_puts(message);
+    UART_puts(message);
 
     while(1);
 }
@@ -72,7 +72,7 @@ int main(void)
 //
 //******************************************************************8
 
-void initI2C()
+void I2C_init()
 {
     UCB0CTL1 |= UCSWRST;                      // Enable SW reset
 
@@ -85,24 +85,6 @@ void initI2C()
     UCB0BR1 = 0;
     UCB0CTL1 &= ~UCSWRST;                     // Clear SW reset, resume operation
     IE2 |= UCB0RXIE + UCB0TXIE;
-}
-
-void initUART()
-{
-    if (CALBC1_1MHZ==0xFF)                    // If calibration constant erased
-    {
-      while(1);                               // do not load, trap CPU!!
-    }
-    DCOCTL = 0;                               // Select lowest DCOx and MODx settings
-    BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
-    DCOCTL = CALDCO_1MHZ;
-    P1SEL |= BIT1 + BIT2 ;                     // P1.1 = RXD, P1.2=TXD
-    P1SEL2 |= BIT1 + BIT2 ;                    // P1.1 = RXD, P1.2=TXD
-    UCA0CTL1 |= UCSSEL_2;                     // SMCLK
-    UCA0BR0 = 104;                            // 1MHz 9600
-    UCA0BR1 = 0;                              // 1MHz 9600
-    UCA0MCTL = UCBRS0;                        // Modulation UCBRSx = 1
-    UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
 }
 
 //*************************************************
