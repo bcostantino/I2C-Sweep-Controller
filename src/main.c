@@ -28,10 +28,6 @@ int main(void)
     // stop watchdog timer
     WDTCTL = WDTPW + WDTHOLD;
 
-    // initialize LED pins
-    //P1DIR |= BIT0;
-    //P1OUT &= BIT0;
-
     // initialize serial communication
     initI2C();
     initUART();
