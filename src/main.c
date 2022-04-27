@@ -1,15 +1,21 @@
-/////////////////////////////////////////////////////////////////////
-/*
- * I2C Address Scan (main.c)
- * Brian Costantibo
- *
- * - This code, for the MSP430G2553, acts as the controller on an I2C bus.
- * - Scans all 7-bit peripheral addresses, storing each valid address
- *   in a global array (int[] addys)
- */
-//////////////////////////////////////////////////////////////////////
+//*******************************************************************************
+//
+//   I2C Address Scan (src/main.c)
+//
+//   Brian Costantibo
+//
+//*********************************************************************************
+//
+//   -   This code, for the MSP430G2553, acts as the controller on an I2C bus.
+//   -   Scans all 7-bit peripheral addresses, storing each valid address
+//       in a global array (int[] addys)
+//
+//*********************************************************************************
 
 #include <msp430.h>
+#include <stdio.h>
+
+#include "uartio.h"
 
 int addys[10];
 unsigned int counter = 0;
@@ -19,50 +25,56 @@ void initI2C();
 
 int main(void)
 {
-    WDTCTL = WDTPW + WDTHOLD;                 // Stop WDT
-    P1DIR |= BIT0;                            // P1.0 output
-    P1OUT &= BIT0;                            // P1.0 = 1
+    // stop watchdog timer
+    WDTCTL = WDTPW + WDTHOLD;
 
+    // initialize LED pins
+    //P1DIR |= BIT0;
+    //P1OUT &= BIT0;
+
+    // initialize serial communication
     initI2C();
     initUART();
 
-    UCB0I2CSA = 0x00;                         // start address scan at 0x00, slave address
+    // start address scan at peripheral address 0x00
+    UCB0I2CSA = 0x00;
+
     while (1)
     {
+        // transmit start condition over I2C bus
         while (UCB0CTL1 & UCTXSTP);              // delay while stop condition is set
         UCB0CTL1 |= UCTXSTT;                     // set I2C start condition
         while (UCB0CTL1 & UCTXSTT);              // Start condition sent?
         UCB0CTL1 |= UCTXSTP;                     // I2C stop condition
 
+        // enter if request acknowledged
         if(!(UCB0STAT & UCNACKIFG))
         {
-            __bis_SR_register(LPM0_bits+GIE);                  // Enter LPM0 w/ interrupts
+            // Enter LPM0 w/ interrupts
+            __bis_SR_register(LPM0_bits+GIE);
             __no_operation();
         }
 
+        // increment address, and break loop if greater than 7-bits
         if(UCB0I2CSA >= 0x7F)
             break;
         else
             UCB0I2CSA++;
     }
 
+    // UART stuff
+    char message[20];
+    sprintf(message, "Device address: %d", addys[0]);
+    uart_puts(message);
+
     while(1);
-
-    // Uart stuff
-    int i;
-    for(i = 2; i<8;i++)
-    {
-        IE2 |= UCA0TXIE;
-        UCA0TXBUF = i;                       // Enable USCI_A0 RX interrupt
-        __bis_SR_register(LPM0_bits+GIE);
-    }
-
-    return 0;
 }
 
-/*
- * Initialization functions for I2C and UART communication
- */
+//*****************************************************************
+//
+// Initialization functions for I2C and UART communication
+//
+//******************************************************************8
 
 void initI2C()
 {
@@ -85,7 +97,6 @@ void initUART()
     {
       while(1);                               // do not load, trap CPU!!
     }
-    UCA0CTL1 |= UCSWRST;
     DCOCTL = 0;                               // Select lowest DCOx and MODx settings
     BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
     DCOCTL = CALDCO_1MHZ;
@@ -98,13 +109,13 @@ void initUART()
     UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
 }
 
-/*
- * Interrupt Service Routines (ISR)
- * - Handle status, rx and tx interrupts
- */
+//*************************************************
+//
+// Interrupt Service Routines
+//
+//************************************************
 
-// status interrupt handler
-// STT, STP, NACK, etc.
+// status interrupt handler (for STT, STP, NACK, etc.)
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=USCIAB0RX_VECTOR
 __interrupt void USCI0RX_ISR(void)
@@ -114,18 +125,6 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
 #error Compiler not supported!
 #endif
 {
-    if(UCB0STAT & UCNACKIFG) // NACK
-    {
-        // do nothing
-        UCB0STAT &= ~UCNACKIFG;
-    }
-
-    /*
-    if (IFG2 & UCA0RXIFG)
-    {
-        int rx_val = UCA0RXBUF; //Must read UCxxRXBUF to clear the flag
-    }
-    */
 }
 
 // RX/TX interrupt handler
