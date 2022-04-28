@@ -1,9 +1,13 @@
 # ignore all files
 *
-*/
 !.gitignore
-
-# allow source files
-!/src/*
-!/lib/*
 !Makefile
+
+# ignore CCS auto generated files
+.launches/
+.settings/
+Debug/
+targetConfigs/
+.ccsproject
+.cproject
+.project
