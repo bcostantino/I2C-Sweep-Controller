@@ -16,7 +16,7 @@
 
 #include <msp430.h>
 #include <stdio.h>
-#include <uartio.h>
+#include <UART_IO_msp430g2553.h>
 
 int addys[10];
 unsigned int counter = 0;
@@ -59,9 +59,16 @@ int main(void)
     }
 
     // UART stuff
-    char message[20];
-    sprintf(message, "Device address: %d", addys[0]);
-    UART_puts(message);
+    unsigned int i;
+    for(i=0;i<sizeof(addys)/sizeof(addys[0]);i++)
+    {
+        if(addys[i]!=0)
+        {
+            char message[20];
+            sprintf(message, "Device address: %d", addys[i]);
+            UART_puts(message);
+        }
+    }
 
     while(1);
 }
@@ -121,6 +128,9 @@ void __attribute__ ((interrupt(USCIAB0TX_VECTOR))) USCI0TX_ISR (void)
         addys[counter] = UCB0I2CSA;
         counter++;
     }
+
+    //if(IFG2 & UCA0TXIFG) UART_SEND_CHAR();
+
     __bic_SR_register_on_exit(LPM0_bits);
 }
 

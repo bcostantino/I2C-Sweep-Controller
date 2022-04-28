@@ -1,8 +1,9 @@
-.launches/
-.settings/
-Debug/
-targetConfigs/
-.project
-.cproject
-.ccsproject
-lnk_msp430g2553.cmd
+# ignore all files
+*
+*/
+!.gitignore
+
+# allow source files
+!/src/*
+!/lib/*
+!Makefile
