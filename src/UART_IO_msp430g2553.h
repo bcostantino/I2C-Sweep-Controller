@@ -65,6 +65,7 @@ char dequeue(queue_t* q);               // get value from head of queue
 
 
 void UART_init();
+int UART_init_new();
 
 
 //*****************************************
@@ -74,6 +75,10 @@ void UART_init();
 
 void UART_putc(char c);
 void UART_puts(char* s);
+void UART_puts_new(char* s);
 
 
 void UART_SEND_CHAR();
+
+void UART_putc_new(char c);
+void UART_sendc();

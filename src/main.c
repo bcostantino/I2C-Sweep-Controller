@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <UART_IO_msp430g2553.h>
 
-int addys[10];
+int addys[5];
 unsigned int counter = 0;
 
 void I2C_init();
@@ -58,26 +58,36 @@ int main(void)
             UCB0I2CSA++;
     }
 
+
     // UART stuff
+    // determine number of devices
+    unsigned int dev_count = 0;
     unsigned int i;
-    for(i=0;i<sizeof(addys)/sizeof(addys[0]);i++)
+    for(int i=0;i<sizeof(addys)/sizeof(addys[0]);i++)
     {
         if(addys[i]!=0)
-        {
-            char message[20];
-            sprintf(message, "Device address: %d", addys[i]);
-            UART_puts(message);
-        }
+            dev_count++;
+    }
+
+    // print number of devices
+    char message0[20];                                           // define initial message
+    sprintf(message0, "Found %d device(s):\n\r", dev_count);    // format initial message
+    UART_puts(message0);                                        // print message through UART
+
+    // print all device addresses
+    for(i=0;i<dev_count;i++)
+    {
+        char message1[20];
+        sprintf(message1, "Address: 0x%02X (%d)\n\r", addys[i], addys[i]);
+        UART_puts(message1);
     }
 
     while(1);
 }
 
 //*****************************************************************
-//
-// Initialization functions for I2C and UART communication
-//
-//******************************************************************8
+// Initialization function for I2C communication
+//*****************************************************************
 
 void I2C_init()
 {
@@ -93,6 +103,8 @@ void I2C_init()
     UCB0CTL1 &= ~UCSWRST;                     // Clear SW reset, resume operation
     IE2 |= UCB0RXIE + UCB0TXIE;
 }
+
+
 
 //*************************************************
 //
@@ -112,7 +124,8 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
 {
 }
 
-// RX/TX interrupt handler
+// I2C RX/TX ISR
+// UART TX ISR
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=USCIAB0TX_VECTOR
 __interrupt void USCI0TX_ISR(void)
@@ -122,6 +135,7 @@ void __attribute__ ((interrupt(USCIAB0TX_VECTOR))) USCI0TX_ISR (void)
 #error Compiler not supported!
 #endif
 {
+    // recieved a message over I2C
     if (IFG2 & UCB0RXIFG)
     {
         unsigned char rx_val = UCB0RXBUF; //Must read UCxxRXBUF to clear the flag
@@ -129,8 +143,13 @@ void __attribute__ ((interrupt(USCIAB0TX_VECTOR))) USCI0TX_ISR (void)
         counter++;
     }
 
-    //if(IFG2 & UCA0TXIFG) UART_SEND_CHAR();
+    // UART TX buff is empty
+    /*
+    if (IFG2 & UCA0TXIFG)
+        UART_sendc();
+    */
 
+    // exit low power mode
     __bic_SR_register_on_exit(LPM0_bits);
 }
 

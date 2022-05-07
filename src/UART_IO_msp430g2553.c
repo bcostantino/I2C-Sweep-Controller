@@ -22,7 +22,6 @@ unsigned int get_char_buffer_size(char* s)
 }
 
 
-
 ///////////////////////////////////////////
 //*****************************************
 //  UART functions
@@ -49,8 +48,8 @@ void UART_init()
 
 
 int UART_init_new(
-        unsigned char RXD_mask,     // 8-bit mask to enable RXD pin
-        unsigned char TXD_mask      // 8-bit mask to enable TXD pin
+        //unsigned char RXD_mask,     // 8-bit mask to enable RXD pin
+        //unsigned char TXD_mask      // 8-bit mask to enable TXD pin
         )
 {
     // If calibration constant erased
@@ -61,14 +60,15 @@ int UART_init_new(
     DCOCTL = CALDCO_1MHZ;
 
     // enable RXD and TXD pins
-    P1SEL |= RXD_mask + TXD_mask;
-    P1SEL2 |= RXD_mask + TXD_mask;
+    P1SEL |= BIT1 + BIT2;
+    P1SEL2 |= BIT1 + BIT2;
 
     UCA0CTL1 |= UCSSEL_2;                     // SMCLK
     UCA0BR0 = BAUD_9600;                      // 1MHz 9600
     UCA0BR1 = 0;                              // 1MHz 9600
     UCA0MCTL = UCBRS0;                        // Modulation UCBRSx = 1
     UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
+
 
     // initialize print queue
     queue_init(&UART_print_q);
@@ -94,13 +94,6 @@ void UART_puts(char* s)
         UART_putc(s[i]);
 }
 
-void UART_puts_new(char* s)
-{
-    if (get_char_buffer_size(s)==0) return;
-
-    while(s!='\0')
-        UART_putc(s++);
-}
 
 //////////////////////////////////////////////////////
 //
@@ -114,36 +107,6 @@ void UART_puts_new(char* s)
 // and allocation of the TX_buffer
 //
 //////////////////////////////////////////////////////
-
-/*      TEST CODE  UNUSED
-char UART_TX_buffer[MAX_PRINT_BUFFER_LENGTH];
-unsigned int UART_TX_add_pointer = 0,
-        UART_TX_print_pointer = 0;
-
-// to be called only when USCIA0TXIFG is set
-void UART_SEND_CHAR()
-{
-    // reset print pointer to 0 if greater than TX buffer length
-    if(UART_TX_print_pointer >= sizeof(UART_TX_buffer)/sizeof(UART_TX_buffer[0]))
-        UART_TX_print_pointer = 0;
-
-    // pull next byte to be sent, and increment print pointer
-    char next_byte = UART_TX_buffer[UART_TX_print_pointer];
-    UART_TX_buffer[UART_TX_print_pointer] = 69;
-    UCA0TXBUF = next_byte;
-}
-
-void UART_putc_new(char c)
-{
-    // reset add pointer to 0 if greater than TX buffer length
-    if((UART_TX_add_pointer >= sizeof(UART_TX_buffer)/sizeof(UART_TX_buffer[0])) ||
-            (UART_TX_add_pointer >= UART_TX_print_pointer))
-        UART_TX_add_pointer = 0;
-
-    // add char to TX buffer and increment add pointer
-    UART_TX_buffer[UART_TX_add_pointer++] = c;
-}
-*/
 
 /////////////////////////////////////////////
 //*******************************************
@@ -188,7 +151,15 @@ void UART_putc_new(char c)
     IE2 |= UCA0TXIE;
 }
 
-void UART_sendc()
+void UART_puts_new(char* s)
+{
+    if (get_char_buffer_size(s)==0) return;
+
+    while(s!='\0')
+        UART_putc_new(s++);
+}
+
+void UART_ISR_sendc()
 {
     char nextc = dequeue(&UART_print_q);
     if(nextc==QUEUE_EMPTY)
@@ -199,3 +170,4 @@ void UART_sendc()
 
     UCA0TXBUF = nextc;
 }
+
